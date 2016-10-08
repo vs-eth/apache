@@ -1,0 +1,35 @@
+---
+
+- name: install apache
+  apt:
+    name: "{{ item }}"
+    state: installed
+    update_cache: yes
+    cache_valid_time: 1800
+  with_items:
+    - apache2
+    - apache2-utils
+
+- name: enable/disable apache modules
+  apache2_module:
+    name: '{{ item.name }}'
+    state: '{{ item.state | default("present")}}'
+  with_items: "{{ apache_modules }}"
+
+- name: copy vhost configuration
+  template:
+    src: "vhosts.conf.j2"
+    dest: "/etc/apache2/sites-available/{{ apache_vhosts_filename }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload apache
+  when: apache_create_vhosts
+
+- name: enable/disable apache sites
+  file:
+    src: "/etc/apache2/sites-available/{{ item.name }}"
+    dest: "/etc/apache2/sites-enabled/{{ item.name }}"
+    state: "{{ item.state }}"
+  with_items: "{{ apache_sites }}"
+  notify: reload apache

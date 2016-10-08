@@ -1,0 +1,107 @@
+{{ apache_global_vhost_settings }}
+
+{# Set up VirtualHosts #}
+{% for vhost in apache_vhosts %}
+<VirtualHost {{ apache_listen_ip }}:{{ apache_listen_port }}>
+  ServerName {{ vhost.servername }}
+
+{% if vhost.serveralias is defined %}
+  ServerAlias {{ vhost.serveralias }}
+
+{% endif %}
+{% if vhost.documentroot is defined %}
+  DocumentRoot {{ vhost.documentroot }}
+
+{% endif %}
+{% if vhost.serveradmin is defined %}
+  ServerAdmin {{ vhost.serveradmin }}
+
+{% endif %}
+{% if vhost.documentroot is defined %}
+  <Directory "{{ vhost.documentroot }}">
+    AllowOverride All
+    Options -Indexes +FollowSymLinks
+    Require all granted
+  </Directory>
+
+{% endif %}
+{% if vhost.directories is defined %}
+{%   for directory in vhost.directories %}
+  <Directory {{ directory.path }}>
+{%     if directory.options is defined and directory.options %}
+    Options {{ directory.options | join(' ') }}
+{%     endif %}
+{%     if directory.extra_options is defined %}
+{%       for extra_option in directory.extra_options %}
+    {{ extra_option }}
+{%       endfor %}
+{%     endif %}
+  </Directory>
+{%   endfor %}
+
+{% endif %}
+{% if vhost.locations is defined %}
+{%   for loc in vhost.locations %}
+  <Location {{ loc.path }}>
+{% if loc.options is defined %}
+{%   for opt in loc.options %}
+    {{ opt }}
+{%   endfor %}
+{% endif %}
+  </Location>
+{%   endfor %}
+
+{% endif %}
+{% if vhost.aliases is defined %}
+{%  for alias in vhost.aliases  %}
+  Alias "{{ alias.from }}" "{{ alias.to }}"
+{% endfor %}
+
+{% endif %}
+{% if vhost.extra_parameters is defined %}
+  {{ vhost.extra_parameters }}
+{% endif %}
+</VirtualHost>
+
+{% endfor %}
+
+{# Set up SSL VirtualHosts #}
+{% for vhost in apache_vhosts_ssl %}
+{% if apache_ignore_missing_ssl_certificate or apache_ssl_certificates.results[loop.index0].stat.exists %}
+<VirtualHost {{ apache_listen_ip }}:{{ apache_listen_port_ssl }}>
+  ServerName {{ vhost.servername }}
+{% if vhost.serveralias is defined %}
+  ServerAlias {{ vhost.serveralias }}
+{% endif %}
+{% if vhost.documentroot is defined %}
+  DocumentRoot {{ vhost.documentroot }}
+{% endif %}
+
+  SSLEngine on
+  SSLCipherSuite {{ apache_ssl_cipher_suite }}
+  SSLProtocol {{ apache_ssl_protocol }}
+  SSLHonorCipherOrder On
+  SSLCompression off
+  SSLCertificateFile {{ vhost.certificate_file }}
+  SSLCertificateKeyFile {{ vhost.certificate_key_file }}
+{% if vhost.certificate_chain_file is defined %}
+  SSLCertificateChainFile {{ vhost.certificate_chain_file }}
+{% endif %}
+
+{% if vhost.serveradmin is defined %}
+  ServerAdmin {{ vhost.serveradmin }}
+{% endif %}
+{% if vhost.documentroot is defined %}
+  <Directory "{{ vhost.documentroot }}">
+    AllowOverride All
+    Options -Indexes +FollowSymLinks
+    Require all granted
+  </Directory>
+{% endif %}
+{% if vhost.extra_parameters is defined %}
+  {{ vhost.extra_parameters }}
+{% endif %}
+</VirtualHost>
+
+{% endif %}
+{% endfor %}
