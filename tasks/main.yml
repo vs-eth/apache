@@ -10,12 +10,6 @@
     - apache2
     - apache2-utils
 
-- name: enable/disable apache modules
-  apache2_module:
-    name: '{{ item.name }}'
-    state: '{{ item.state | default("present")}}'
-  with_items: "{{ apache_modules }}"
-
 - name: copy vhost configuration
   template:
     src: "vhosts.conf.j2"
@@ -25,6 +19,12 @@
     mode: 0644
   notify: reload apache
   when: apache_create_vhosts
+
+- name: enable/disable apache modules
+  apache2_module:
+    name: '{{ item.name }}'
+    state: '{{ item.state | default("present")}}'
+  with_items: "{{ apache_modules }}"
 
 - name: enable/disable apache sites
   file:
