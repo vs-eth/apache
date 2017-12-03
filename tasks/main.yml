@@ -1,6 +1,7 @@
 ---
 
 - name: install apache
+  become: True
   apt:
     name: "{{ item }}"
     state: installed
@@ -11,6 +12,7 @@
     - apache2-utils
 
 - name: copy vhost configuration
+  become: True
   template:
     src: "vhosts.conf.j2"
     dest: "/etc/apache2/sites-available/{{ apache_vhosts_filename }}"
@@ -21,12 +23,14 @@
   when: apache_create_vhosts
 
 - name: enable/disable apache modules
+  become: True
   apache2_module:
     name: '{{ item.name }}'
     state: '{{ item.state | default("present")}}'
   with_items: "{{ apache_modules }}"
 
 - name: enable/disable apache sites
+  become: True
   file:
     src: "/etc/apache2/sites-available/{{ item.name }}"
     dest: "/etc/apache2/sites-enabled/{{ item.name }}"

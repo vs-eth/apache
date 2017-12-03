@@ -1,4 +1,5 @@
 - name: reload apache
+  become: True
   service:
     name: "apache2"
     state: reloaded
