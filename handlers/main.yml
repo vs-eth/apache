@@ -3,3 +3,8 @@
   service:
     name: "apache2"
     state: reloaded
+
+- name : apt update cache
+  become: True
+  apt:
+    update_cache: yes

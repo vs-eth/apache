@@ -11,6 +11,16 @@
     - apache2
     - apache2-utils
 
+- name: copy base configuration
+  become: True
+  template:
+    src: "000-default.conf.j2"
+    dest: "/etc/apache2/sites-available/000-default.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload apache
+
 - name: copy vhost configuration
   become: True
   template:
@@ -37,3 +47,55 @@
     state: "{{ item.state }}"
   with_items: "{{ apache_sites }}"
   notify: reload apache
+
+- name: add SWITCH-AAI repo
+  become: True
+  when: apache_aai
+  block:
+    - apt_key:
+        data: "{{ lookup('file', 'SWITCHaai-swdistrib.asc') }}"
+        state: present
+    - apt_repository:
+        repo: deb http://pkg.switch.ch/switchaai/debian {{ ansible_distribution_release }} main
+        state: present
+        filename: switchaai
+      notify: apt update cache
+
+- name: Install SWITCH-AAI
+  become: True
+  when: apache_aai
+  apt:
+    name: "{{ item }}"
+    state: installed
+    update_cache: yes
+    cache_valid_time: 1800
+    install_recommends: yes
+  with_items:
+    - shibboleth
+
+- name: Upload shibboleth configuration
+  become: True
+  when: apache_aai
+  copy:
+    content: "{{ lookup('file', apache_aai_config_loc + '/' + item ) }}"
+    dest: "/etc/shibboleth/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - shibboleth2.xml
+    - SWITCHaaiRootCA.crt.pem
+    - attribute-map.xml
+    - attribute-policy.xml
+
+- name: Check whether shibboleth key has been generated
+  become: True
+  when: apache_aai
+  stat:
+    path: /etc/shibboleth/sp-cert.pem
+  register: shibcert
+
+- name: Generate shibboleth certificate
+  become: True
+  when: apache_aai and not shibcert.stat.exists
+  command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 3 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/

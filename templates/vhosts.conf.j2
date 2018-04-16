@@ -23,7 +23,12 @@
     Options -Indexes +FollowSymLinks
     Require all granted
   </Directory>
-
+  Alias /.well-known /var/www/letsencrypt/.well-known
+  <Directory "/var/www/letsencrypt/.well-known">
+    Options None
+    AllowOverride None
+    ForceType text/plain
+  </Directory>
 {% endif %}
 {% if vhost.directories is defined %}
 {%   for directory in vhost.directories %}
@@ -96,6 +101,12 @@
     AllowOverride All
     Options -Indexes +FollowSymLinks
     Require all granted
+  </Directory>
+  Alias /.well-known /var/www/letsencrypt/.well-known
+  <Directory "/var/www/letsencrypt/.well-known">
+    Options None
+    AllowOverride None
+    ForceType text/plain
   </Directory>
 {% endif %}
 {% if vhost.extra_parameters is defined %}
