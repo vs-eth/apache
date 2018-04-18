@@ -32,6 +32,10 @@
 		AllowOverride None
 		ForceType text/plain
 	</Directory>
+
+{% if apache_sslonly %}
+	RedirectMatch Permanent "^(/(?!\.well-known/).*)" https://{{ ansible_fqdn }}$1
+{% endif %}
 </VirtualHost>
 
 # vim: syntax=apache ts=4 sw=4 sts=4 sr noet
