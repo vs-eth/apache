@@ -3,13 +3,12 @@
 - name: install apache
   become: True
   apt:
-    name: "{{ item }}"
-    state: installed
+    name:
+      - apache2
+      - apache2-utils
+    state: present
     update_cache: yes
     cache_valid_time: 1800
-  with_items:
-    - apache2
-    - apache2-utils
 
 - name: copy base configuration
   become: True
@@ -50,7 +49,6 @@
 
 - name: add SWITCH-AAI repo
   become: True
-  when: apache_aai
   block:
     - apt_key:
         data: "{{ lookup('file', 'SWITCHaai-swdistrib.asc') }}"
@@ -60,22 +58,20 @@
         state: present
         filename: switchaai
       notify: apt update cache
+  when: apache_aai
 
 - name: Install SWITCH-AAI
   become: True
-  when: apache_aai
   apt:
-    name: "{{ item }}"
+    name: shibboleth
     state: installed
     update_cache: yes
     cache_valid_time: 1800
     install_recommends: yes
-  with_items:
-    - shibboleth
+  when: apache_aai
 
 - name: Upload shibboleth configuration
   become: True
-  when: apache_aai
   copy:
     content: "{{ lookup('file', apache_aai_config_loc + '/' + item ) }}"
     dest: "/etc/shibboleth/{{ item }}"
@@ -87,15 +83,16 @@
     - SWITCHaaiRootCA.crt.pem
     - attribute-map.xml
     - attribute-policy.xml
+  when: apache_aai
 
 - name: Check whether shibboleth key has been generated
   become: True
-  when: apache_aai
   stat:
     path: /etc/shibboleth/sp-cert.pem
   register: shibcert
+  when: apache_aai
 
 - name: Generate shibboleth certificate
   become: True
-  when: apache_aai and not shibcert.stat.exists
   command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 3 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/
+  when: apache_aai and not shibcert.stat.exists
