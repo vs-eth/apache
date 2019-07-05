@@ -29,7 +29,7 @@
     group: root
     mode: 0644
   notify: reload apache
-  when: apache_create_vhosts
+  when: apache_create_vhosts|bool
 
 - name: enable/disable apache modules
   become: True
@@ -58,7 +58,7 @@
         state: present
         filename: switchaai
       notify: apt update cache
-  when: apache_aai
+  when: apache_aai|bool
 
 - name: Install SWITCH-AAI
   become: True
@@ -68,7 +68,7 @@
     update_cache: yes
     cache_valid_time: 1800
     install_recommends: yes
-  when: apache_aai
+  when: apache_aai|bool
 
 - name: Upload shibboleth configuration
   become: True
@@ -83,14 +83,14 @@
     - SWITCHaaiRootCA.crt.pem
     - attribute-map.xml
     - attribute-policy.xml
-  when: apache_aai
+  when: apache_aai|bool
 
 - name: Check whether shibboleth key has been generated
   become: True
   stat:
     path: /etc/shibboleth/sp-cert.pem
   register: shibcert
-  when: apache_aai
+  when: apache_aai|bool
 
 - name: Generate shibboleth certificate
   become: True
