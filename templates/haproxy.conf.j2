@@ -1,0 +1,29 @@
+frontend shibd-front
+        bind 127.0.0.1:1600
+        mode tcp
+        default_backend shibd-back
+
+backend shibd-back
+        mode tcp
+        # Shibboleth uses an ancient protocol called WDDX.
+        # We try to replicate the GetMetadata request here
+        option tcp-check
+        tcp-check connect port 1602 ssl
+        tcp-check send-binary 00000105
+        tcp-check send <wddxPacket\ version=\"1.0\"\ lowercase=\"no\"><header/><data><struct\ name=\"default/Metadata\"><var\ name=\"application_id\"><string>default</string></var><var\ name=\"handler_url\"><string>{{ apache_aai_shib_baseurl }}</string></var></struct></data></wddxPacket>
+        # Don't actually check the response. It is prefixed with 0x00001b8d
+        # and there seems to be no way to correctly escape this in HAProxy.
+        tcp-check expect rstring ^.*$
+{% for item in groups[apache_aai_group] %}
+        server {{ hostvars[item]['ansible_nodename'] }} {{ hostvars[item]['ansible_fqdn'] }}:1602 ssl crt /etc/haproxy/shib-proxy-client.pem ca-file /etc/haproxy/shib-proxy-ca.pem verify required check {% if not loop.last %}backup{% endif %}
+
+{% endfor %}
+
+frontend shibd-local
+        bind :::1602 v4v6 ssl crt /etc/haproxy/shib-proxy-server.pem ca-file /etc/haproxy/shib-proxy-ca.pem crl-file /etc/haproxy/shib-proxy-crl.pem verify required
+        mode tcp
+        default_backend shibd-back-local
+
+backend shibd-back-local
+        mode tcp
+        server local 127.0.0.1:1601 check

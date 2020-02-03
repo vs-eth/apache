@@ -96,3 +96,36 @@
   become: True
   command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 3 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/
   when: apache_aai and not shibcert.stat.exists
+
+- name: Concat shibboleth proxy server certs
+  when: apache_aai_clustered
+  become: True
+  assemble:
+    src: /etc/haproxy/shib-proxy-server
+    dest: /etc/haproxy/shib-proxy-server.pem
+    owner: root
+    group: root
+    mode: 0640
+  notify: restart haproxy
+
+- name: Concat shibboleth proxy client certs
+  become: True
+  when: apache_aai_clustered
+  assemble:
+    src: /etc/haproxy/shib-proxy-client
+    dest: /etc/haproxy/shib-proxy-client.pem
+    owner: root
+    group: root
+    mode: 0640
+  notify: restart haproxy
+
+- name: Add haproxy drop-in
+  become: True
+  when: apache_aai_clustered
+  template:
+    src: haproxy.conf.j2
+    dest: /etc/haproxy/conf.d/90-shibd.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart haproxy
