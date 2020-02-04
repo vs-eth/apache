@@ -43,3 +43,5 @@ apache_sslonly: False
 
 apache_aai: False
 apache_aai_config_loc: '{{ config_repo_path }}/shib/{{ ansible_fqdn }}'
+apache_aai_clustered: False
+apache_aai_group: False

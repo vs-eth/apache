@@ -4,6 +4,12 @@
     name: "apache2"
     state: reloaded
 
+- name: restart haproxy
+  become: True
+  service:
+    name: haproxy
+    state: restarted
+
 - name : apt update cache
   become: True
   apt:
