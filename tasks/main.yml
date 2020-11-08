@@ -64,7 +64,7 @@
   become: True
   apt:
     name: shibboleth
-    state: installed
+    state: present
     update_cache: yes
     cache_valid_time: 1800
     install_recommends: yes
@@ -98,7 +98,7 @@
   when: apache_aai and not shibcert.stat.exists
 
 - name: Concat shibboleth proxy server certs
-  when: apache_aai_clustered
+  when: apache_aai_clustered | bool
   become: True
   assemble:
     src: /etc/haproxy/shib-proxy-server
@@ -110,7 +110,7 @@
 
 - name: Concat shibboleth proxy client certs
   become: True
-  when: apache_aai_clustered
+  when: apache_aai_clustered | bool
   assemble:
     src: /etc/haproxy/shib-proxy-client
     dest: /etc/haproxy/shib-proxy-client.pem
@@ -121,7 +121,7 @@
 
 - name: Add haproxy drop-in
   become: True
-  when: apache_aai_clustered
+  when: apache_aai_clustered | bool
   template:
     src: haproxy.conf.j2
     dest: /etc/haproxy/conf.d/90-shibd.conf
