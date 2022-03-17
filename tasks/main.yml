@@ -10,6 +10,31 @@
     update_cache: yes
     cache_valid_time: 1800
 
+- name: add SWITCH-AAI repo
+  become: True
+  block:
+    - apt_key:
+        data: "{{ lookup('file', 'SWITCHaai-swdistrib.asc') }}"
+        state: present
+    - apt_repository:
+        repo: deb http://pkg.switch.ch/switchaai/debian {{ ansible_distribution_release }} main
+        state: present
+        filename: switchaai
+      notify: apt update cache
+  when: apache_aai|bool and apache_aai_use_switch_repo|bool
+
+- name: Install SWITCH-AAI
+  become: True
+  apt:
+    name:
+      - shibboleth-sp-utils
+      - libapache2-mod-shib
+    state: present
+    update_cache: yes
+    cache_valid_time: 1800
+    install_recommends: yes
+  when: apache_aai|bool
+
 - name: copy base configuration
   become: True
   template:
@@ -46,29 +71,6 @@
     state: "{{ item.state }}"
   with_items: "{{ apache_sites }}"
   notify: reload apache
-
-- name: add SWITCH-AAI repo
-  become: True
-  block:
-    - apt_key:
-        data: "{{ lookup('file', 'SWITCHaai-swdistrib.asc') }}"
-        state: present
-    - apt_repository:
-        repo: deb http://pkg.switch.ch/switchaai/debian {{ ansible_distribution_release }} main
-        state: present
-        filename: switchaai
-      notify: apt update cache
-  when: apache_aai|bool
-
-- name: Install SWITCH-AAI
-  become: True
-  apt:
-    name: shibboleth
-    state: present
-    update_cache: yes
-    cache_valid_time: 1800
-    install_recommends: yes
-  when: apache_aai|bool
 
 - name: Upload shibboleth configuration
   become: True
