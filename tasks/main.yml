@@ -63,13 +63,21 @@
     state: '{{ item.state | default("present")}}'
   with_items: "{{ apache_modules }}"
 
-- name: enable/disable apache sites
+- name: disable apache sites
+  become: True
+  file:
+    dest: "/etc/apache2/sites-enabled/{{ item.name }}"
+    state: "{{ item.state }}"
+  with_items: '{{ apache_sites | selectattr("state", "==", "absent") | list }}'
+  notify: reload apache
+
+- name: enable apache sites
   become: True
   file:
     src: "/etc/apache2/sites-available/{{ item.name }}"
     dest: "/etc/apache2/sites-enabled/{{ item.name }}"
     state: "{{ item.state }}"
-  with_items: "{{ apache_sites }}"
+  with_items: '{{ apache_sites | rejectattr("state", "==", "absent") | list }}'
   notify: reload apache
 
 - name: Upload shibboleth configuration
