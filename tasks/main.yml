@@ -35,6 +35,16 @@
     install_recommends: yes
   when: apache_aai|bool
 
+- name: copy ports configuration
+  become: True
+  template:
+    src: "ports.conf.j2"
+    dest: "/etc/apache2/ports.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload apache
+
 - name: copy base configuration
   become: True
   template:
