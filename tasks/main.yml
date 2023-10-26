@@ -114,7 +114,7 @@
 
 - name: Generate shibboleth certificate
   become: True
-  command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 3 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/
+  command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 10 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/
   when: apache_aai and not shibcert.stat.exists
 
 - name: Concat shibboleth proxy server certs
