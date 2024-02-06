@@ -8,7 +8,7 @@ apache_modules:
 apache_sites:
   - name: "vhosts.conf"
     state: link
-  - name: "000-default"
+  - name: "000-default.conf"
     state: absent
 
 apache_create_vhosts: true
