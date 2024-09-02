@@ -1,16 +1,16 @@
-- name: reload apache
-  become: True
-  service:
+- name: Reload apache
+  become: true
+  ansible.builtin.service:
     name: "apache2"
     state: reloaded
 
-- name: restart haproxy
-  become: True
-  service:
+- name: Restart haproxy
+  become: true
+  ansible.builtin.service:
     name: haproxy
     state: restarted
 
-- name : apt update cache
-  become: True
-  apt:
-    update_cache: yes
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true

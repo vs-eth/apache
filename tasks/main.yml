@@ -1,103 +1,105 @@
 ---
 
-- name: install apache
-  become: True
-  apt:
+- name: Install apache
+  become: true
+  ansible.builtin.apt:
     name:
       - apache2
       - apache2-utils
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 1800
 
-- name: add SWITCH-AAI repo
-  become: True
+- name: Add SWITCH-AAI repo
+  become: true
+  when: apache_aai|bool and apache_aai_use_switch_repo|bool
   block:
-    - apt_key:
+    - name: Add SWITCH_AAI repo (key)
+      ansible.builtin.apt_key:
         data: "{{ lookup('file', 'SWITCHaai-swdistrib.asc') }}"
         state: present
-    - apt_repository:
+    - name: Add SWITCH_AAI repo (repo)
+      ansible.builtin.apt_repository:
         repo: deb http://pkg.switch.ch/switchaai/debian {{ ansible_distribution_release }} main
         state: present
         filename: switchaai
-      notify: apt update cache
-  when: apache_aai|bool and apache_aai_use_switch_repo|bool
+      notify: Update apt cache
 
 - name: Install SWITCH-AAI
-  become: True
-  apt:
+  become: true
+  ansible.builtin.apt:
     name:
       - shibboleth-sp-utils
       - libapache2-mod-shib
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 1800
-    install_recommends: yes
+    install_recommends: true
   when: apache_aai|bool
 
-- name: copy ports configuration
-  become: True
-  template:
+- name: Copy ports configuration
+  become: true
+  ansible.builtin.template:
     src: "ports.conf.j2"
     dest: "/etc/apache2/ports.conf"
     owner: root
     group: root
-    mode: 0644
-  notify: reload apache
+    mode: "0644"
+  notify: Reload apache
 
-- name: copy base configuration
-  become: True
-  template:
+- name: Copy base configuration
+  become: true
+  ansible.builtin.template:
     src: "000-default.conf.j2"
     dest: "/etc/apache2/sites-available/000-default.conf"
     owner: root
     group: root
-    mode: 0644
-  notify: reload apache
+    mode: "0644"
+  notify: Reload apache
 
-- name: copy vhost configuration
-  become: True
-  template:
+- name: Copy vhost configuration
+  become: true
+  ansible.builtin.template:
     src: "vhosts.conf.j2"
     dest: "/etc/apache2/sites-available/{{ apache_vhosts_filename }}"
     owner: root
     group: root
-    mode: 0644
-  notify: reload apache
+    mode: "0644"
+  notify: Reload apache
   when: apache_create_vhosts|bool
 
-- name: enable/disable apache modules
-  become: True
-  apache2_module:
+- name: Enable/disable apache modules
+  become: true
+  community.general.apache2_module:
     name: '{{ item.name }}'
-    state: '{{ item.state | default("present")}}'
+    state: '{{ item.state | default("present") }}'
   with_items: "{{ apache_modules }}"
 
-- name: disable apache sites
-  become: True
-  file:
+- name: Disable apache sites
+  become: true
+  ansible.builtin.file:
     dest: "/etc/apache2/sites-enabled/{{ item.name }}"
-    state: "{{ item.state }}"
+    state: absent
   with_items: '{{ apache_sites | selectattr("state", "==", "absent") | list }}'
-  notify: reload apache
+  notify: Reload apache
 
-- name: enable apache sites
-  become: True
-  file:
+- name: Enable apache sites
+  become: true
+  ansible.builtin.file:
     src: "/etc/apache2/sites-available/{{ item.name }}"
     dest: "/etc/apache2/sites-enabled/{{ item.name }}"
     state: "{{ item.state }}"
   with_items: '{{ apache_sites | rejectattr("state", "==", "absent") | list }}'
-  notify: reload apache
+  notify: Reload apache
 
 - name: Upload shibboleth configuration
-  become: True
-  copy:
-    content: "{{ lookup('file', apache_aai_config_loc + '/' + item ) }}"
+  become: true
+  ansible.builtin.copy:
+    content: "{{ lookup('file', apache_aai_config_loc + '/' + item) }}"
     dest: "/etc/shibboleth/{{ item }}"
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   with_items:
     - shibboleth2.xml
     - SWITCHaaiRootCA.crt.pem
@@ -106,46 +108,46 @@
   when: apache_aai|bool
 
 - name: Check whether shibboleth key has been generated
-  become: True
-  stat:
+  become: true
+  ansible.builtin.stat:
     path: /etc/shibboleth/sp-cert.pem
   register: shibcert
   when: apache_aai|bool
 
 - name: Generate shibboleth certificate
-  become: True
-  command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 10 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/
+  become: true
+  ansible.builtin.command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 10 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/
   when: apache_aai and not shibcert.stat.exists
 
 - name: Concat shibboleth proxy server certs
   when: apache_aai_clustered | bool
-  become: True
-  assemble:
+  become: true
+  ansible.builtin.assemble:
     src: /etc/haproxy/shib-proxy-server
     dest: /etc/haproxy/shib-proxy-server.pem
     owner: root
     group: root
-    mode: 0640
-  notify: restart haproxy
+    mode: "0640"
+  notify: Restart haproxy
 
 - name: Concat shibboleth proxy client certs
-  become: True
+  become: true
   when: apache_aai_clustered | bool
-  assemble:
+  ansible.builtin.assemble:
     src: /etc/haproxy/shib-proxy-client
     dest: /etc/haproxy/shib-proxy-client.pem
     owner: root
     group: root
-    mode: 0640
-  notify: restart haproxy
+    mode: "0640"
+  notify: Restart haproxy
 
 - name: Add haproxy drop-in
-  become: True
+  become: true
   when: apache_aai_clustered | bool
-  template:
+  ansible.builtin.template:
     src: haproxy.conf.j2
     dest: /etc/haproxy/conf.d/90-shibd.conf
     owner: root
     group: root
-    mode: 0644
-  notify: restart haproxy
+    mode: "0644"
+  notify: Restart haproxy
