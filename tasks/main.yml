@@ -112,12 +112,26 @@
   ansible.builtin.stat:
     path: /etc/shibboleth/sp-cert.pem
   register: shibcert
-  when: apache_aai|bool
+  when: apache_aai|bool and apache_shib_key is not defined
 
 - name: Generate shibboleth certificate
   become: true
   ansible.builtin.command: shib-keygen -f -u _shibd -h {{ ansible_fqdn }} -y 10 -e https://{{ ansible_fqdn }}/shibboleth -o /etc/shibboleth/
-  when: apache_aai and not shibcert.stat.exists
+  when: apache_aai and apache_shib_key is not defined and not shibcert.stat.exists
+
+- name: Upload shibboleth certificate and key
+  become: true
+  when: apache_shib_key is defined
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  notify: Reload apache
+  loop:
+    - src: "{{ apache_shib_key }}"
+      dest: /etc/shibboleth/sp-key.pem
+    - src: "{{ apache_shib_cert }}"
+      dest: /etc/shibboleth/sp-cert.pem
 
 - name: Concat shibboleth proxy server certs
   when: apache_aai_clustered | bool
