@@ -46,3 +46,7 @@ apache_aai_config_loc: '{{ config_repo_path }}/shib/{{ ansible_fqdn }}'
 apache_aai_clustered: false
 apache_aai_group: false
 apache_aai_use_switch_repo: true
+
+# If not set, a new one will be generated
+# apache_shib_key: files/sp-key.pem
+# apache_shib_cert: files/sp-cert.pem
