@@ -106,6 +106,9 @@
     - attribute-map.xml
     - attribute-policy.xml
   when: apache_aai|bool
+  notify:
+    - Restart shibd
+    - Reload apache
 
 - name: Check whether shibboleth key has been generated
   become: true
