@@ -4,6 +4,12 @@
     name: "apache2"
     state: reloaded
 
+- name: Restart shibd
+  become: true
+  ansible.builtin.service:
+    name: shibd
+    state: restarted
+
 - name: Restart haproxy
   become: true
   ansible.builtin.service:
